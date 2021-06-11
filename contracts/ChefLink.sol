@@ -18,7 +18,7 @@ contract ChefLink is Ownable {
         // We do some fancy math here. Basically, any point in time, the amount of SWINGBYs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accSushiPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accSwingbyPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
         //   1. The pool's `accSwingbyPerShare` (and `lastRewardBlock`) gets updated.
@@ -31,7 +31,7 @@ contract ChefLink is Ownable {
         IERC20 lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. SWINGBYs to distribute per block.
         uint256 lastRewardBlock; // Last block number that SWINGBYs distribution occurs.
-        uint256 accSwingbyPerShare; // Accumulated SUSHIs per share, times 1e12. See below.
+        uint256 accSwingbyPerShare; // Accumulated SWINGBYs per share, times 1e12. See below.
     }
     // The SWINGBY TOKEN!
     IERC20 public swingby;
@@ -41,7 +41,7 @@ contract ChefLink is Ownable {
     uint256 public bonusEndBlock;
     // SWINGBY tokens created per block.
     uint256 public swingbyPerBlock;
-    // Bonus muliplier for early sushi makers.
+    // Bonus muliplier for early swingby makers.
     uint256 public constant BONUS_MULTIPLIER = 10;
     // Info of each pool.
     PoolInfo[] public poolInfo;
@@ -101,7 +101,7 @@ contract ChefLink is Ownable {
         );
     }
 
-    // Update the given pool's SUSHI allocation point. Can only be called by the owner.
+    // Update the given pool's SWINBBY allocation point. Can only be called by the owner.
     function set(
         uint256 _pid,
         uint256 _allocPoint,
@@ -200,7 +200,7 @@ contract ChefLink is Ownable {
                 user.amount.mul(pool.accSwingbyPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
-            safeSushiTransfer(msg.sender, pending);
+            safeSWINGBYTransfer(msg.sender, pending);
         }
         pool.lpToken.safeTransferFrom(
             address(msg.sender),
@@ -222,7 +222,7 @@ contract ChefLink is Ownable {
             user.amount.mul(pool.accSwingbyPerShare).div(1e12).sub(
                 user.rewardDebt
             );
-        safeSushiTransfer(msg.sender, pending);
+        safeSWINGBYTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
@@ -240,7 +240,7 @@ contract ChefLink is Ownable {
     }
 
     // Safe swingby transfer function, just in case if rounding error causes pool to not have enough SWINGBYs.
-    function safeSushiTransfer(address _to, uint256 _amount) internal {
+    function safeSWINGBYTransfer(address _to, uint256 _amount) internal {
         uint256 swingbyBal = swingby.balanceOf(address(this));
         if (_amount > swingbyBal) {
             swingby.transfer(_to, swingbyBal);
