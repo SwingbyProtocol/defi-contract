@@ -35,8 +35,6 @@ contract ChefLink is Ownable {
     }
     // The SWINGBY TOKEN!
     IERC20 public swingby;
-    // Dev address.
-    address public devaddr;
     // Block number when bonus SWINGBY period ends.
     uint256 public bonusEndBlock;
     // SWINGBY tokens created per block.
@@ -99,7 +97,7 @@ contract ChefLink is Ownable {
         );
     }
 
-    // Update the given pool's SWINBBY allocation point. Can only be called by the owner.
+    // Update the given pool's SWINGBY allocation point. Can only be called by the owner.
     function set(
         uint256 _pid,
         uint256 _allocPoint,
@@ -226,7 +224,7 @@ contract ChefLink is Ownable {
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
-    // Withdraw without caring about rewards. EMERGENCY ONLY.
+    // Withdraw without caring about rewards. EMERGENCY ONLY. (TODO: proxy staking)
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
