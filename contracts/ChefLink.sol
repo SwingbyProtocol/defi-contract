@@ -61,14 +61,12 @@ contract ChefLink is Ownable {
 
     function init(
         IERC20 _swingby,
-        address _devaddr,
         uint256 _swingbyPerBlock,
         uint256 _startBlock,
         uint256 _bonusEndBlock
     ) public onlyOwner {
         require(_startBlock == 0, "failed: init");
         swingby = _swingby;
-        devaddr = _devaddr;
         swingbyPerBlock = _swingbyPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
@@ -183,7 +181,6 @@ contract ChefLink is Ownable {
             multiplier.mul(swingbyPerBlock).mul(pool.allocPoint).div(
                 totalAllocPoint
             );
-        swingby.safeTransfer(devaddr, swingbyReward.div(10));
         pool.accSwingbyPerShare = pool.accSwingbyPerShare.add(
             swingbyReward.mul(1e12).div(lpSupply)
         );
@@ -247,11 +244,5 @@ contract ChefLink is Ownable {
         } else {
             swingby.transfer(_to, _amount);
         }
-    }
-
-    // Update dev address by the previous dev.
-    function dev(address _devaddr) public {
-        require(msg.sender == devaddr, "dev: wut?");
-        devaddr = _devaddr;
     }
 }
