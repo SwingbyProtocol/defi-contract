@@ -18,7 +18,7 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 // const infuraKey = "fj4jll3k.....";
 //
 // const fs = require('fs');
@@ -59,16 +59,16 @@ module.exports = {
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     goerli: {
-      provider: () => new HDWalletProvider(mnemonic, `https://goerli.infura.io/v3/f35c2a4f3d0941a38a3edb62ed10c847`),
-      network_id: 5,       // Ropsten's id
-      gas: 5500000,        // Ropsten has a lower block limit than mainnet
+      provider: () => new HDWalletProvider(process.env.SEED, `https://goerli.infura.io/v3/f35c2a4f3d0941a38a3edb62ed10c847`),
+      network_id: 5,       // Goerli's id
+      gas: 1500000,        // Goerli has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
-      gasPrice: 53000000000
+      gasPrice: 4253000000000
     },
     mainnet: {
-      provider: () => new HDWalletProvider(mnemonic, `https://mainnet.infura.io/v3/f35c2a4f3d0941a38a3edb62ed10c847`),
+      provider: () => new HDWalletProvider(process.env.SEED, `https://mainnet.infura.io/v3/f35c2a4f3d0941a38a3edb62ed10c847`),
       network_id: 1,       // Ropsten's id
       gas: 3000000,        // Ropsten has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
@@ -77,7 +77,7 @@ module.exports = {
       gasPrice: 55000000000
     },
     bsc_testnet: {
-      provider: () => new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+      provider: () => new HDWalletProvider(process.env.SEED, `https://data-seed-prebsc-1-s1.binance.org:8545`),
       network_id: 97,       // Ropsten's id
       gas: 7500000,        // Ropsten has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
@@ -86,7 +86,7 @@ module.exports = {
       gasPrice: 10000000000
     },
     bsc_mainnet: {
-      provider: () => new HDWalletProvider(mnemonic, `https://bsc-dataseed.binance.org`),
+      provider: () => new HDWalletProvider(process.env.SEED, `https://bsc-dataseed.binance.org`),
       network_id: 56,       // Ropsten's id
       gas: 3000000,        // Ropsten has a lower block limit than mainnet
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.0;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -63,7 +63,7 @@ contract ChefLink is Ownable {
         uint256 _startBlock,
         uint256 _bonusEndBlock
     ) public onlyOwner {
-        require(_startBlock == 0, "failed: init");
+        require(address(swingby) == address(0x0), "failed: init");
         swingby = _swingby;
         swingbyPerBlock = _swingbyPerBlock;
         bonusEndBlock = _bonusEndBlock;
@@ -95,6 +95,11 @@ contract ChefLink is Ownable {
                 accSwingbyPerShare: 0
             })
         );
+    }
+
+    // Update the given swingbyPerBlock. Can only be called by the owner.
+    function modify(uint256 _swingbyPerBlock) public onlyOwner {
+        swingbyPerBlock = _swingbyPerBlock;
     }
 
     // Update the given pool's SWINGBY allocation point. Can only be called by the owner.
