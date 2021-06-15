@@ -46,6 +46,7 @@ module.exports = {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
+      gasPrice: 753000000000
     },
     // Another network with more advanced options...
     // advanced: {
@@ -65,7 +66,7 @@ module.exports = {
       confirmations: 2,    // # of confs to wait between deployments. (default: 0)
       timeoutBlocks: 200,  // # of blocks before a deployment times out  (minimum/default: 50)
       skipDryRun: true,     // Skip dry run before migrations? (default: false for public nets )
-      gasPrice: 4253000000000
+      gasPrice: 953000000000
     },
     mainnet: {
       provider: () => new HDWalletProvider(process.env.SEED, `https://mainnet.infura.io/v3/f35c2a4f3d0941a38a3edb62ed10c847`),
