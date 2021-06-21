@@ -40,7 +40,7 @@ contract ChefLink is Ownable {
     // SWINGBY tokens created per block.
     uint256 public swingbyPerBlock;
     // Bonus muliplier for early swingby makers.
-    uint256 public constant BONUS_MULTIPLIER = 10;
+    uint256 public constant BONUS_MULTIPLIER = 1;
     // Info of each pool.
     PoolInfo[] public poolInfo;
     // Info of each user that stakes LP tokens.
