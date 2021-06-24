@@ -1,10 +1,10 @@
 const ChefLink = artifacts.require("ChefLink");
 const BN = require("bn.js")
 module.exports = async function (done) {
-    cl = await ChefLink.at("0xBCF17C031Ea9C39261E345e65c8f60cAbdb1CD5A")
-    const LPT = "0x06a69Af8008e80a6729636c9Fc5AFba2a25b541C" // mStable on goerli testnet
-    const allocPoint = 5000
-    const tx = await cl.add(allocPoint, LPT, true)
+    cl = await ChefLink.at("0x9520D443a04C3252e5FfBEFCD3E976eeb6C4509f")
+    const LPT = "0x4a9c7b98c1a92db0ad33b31b549fb1820fe571ff" // Sushi swap LPT
+    const allocPoint = 10000
+    const tx = await cl.add(allocPoint, LPT, true, { gas: 150000 })
     console.log(tx.tx)
     done()
 };
