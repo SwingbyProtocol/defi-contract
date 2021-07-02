@@ -229,12 +229,14 @@ contract ChefLink is Ownable {
             address(this),
             _amount
         );
-        // Staking into farming contract.
-        _stake(_pid);
-        // Send out Earned coins.
-        _sendEarnedCoins(_pid, msg.sender);
-        // Add total locked amount of LPT
-        totalLockedLPT = totalLockedLPT.add(_amount);
+        if (farmCoin != address(0x0)) {
+            // Staking into farming contract.
+            _stake(_pid);
+            // Send out Earned coins.
+            _sendEarnedCoins(_pid, msg.sender);
+            // Add total locked amount of LPT
+            totalLockedLPT = totalLockedLPT.add(_amount);
+        }
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
 
@@ -254,12 +256,14 @@ contract ChefLink is Ownable {
         .div(1e12)
         .sub(user.rewardDebt);
         safeSWINGBYTransfer(msg.sender, pending);
-        // Withdraw LPT and FarmCoins.
-        _unStake(_amount);
-        // Send out EarnedCoins
-        _sendEarnedCoins(_pid, msg.sender);
-        // Remove total locked amount of LPT
-        totalLockedLPT = totalLockedLPT.sub(_amount);
+        if (farmCoin != address(0x0)) {
+            // Withdraw LPT and FarmCoins.
+            _unStake(_amount);
+            // Send out EarnedCoins
+            _sendEarnedCoins(_pid, msg.sender);
+            // Remove total locked amount of LPT
+            totalLockedLPT = totalLockedLPT.sub(_amount);
+        }
         // Send out LPT to user.
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
@@ -301,7 +305,9 @@ contract ChefLink is Ownable {
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        IPancakeswapFarm(farmContract).withdraw(ppid, user.amount);
+        if (farmCoin != address(0x0)) {
+            IPancakeswapFarm(farmContract).withdraw(ppid, user.amount);
+        }
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
