@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IPancakeswapFarm.sol";
 
 contract ChefLink is Ownable {
     using SafeMath for uint256;
@@ -14,6 +15,7 @@ contract ChefLink is Ownable {
     struct UserInfo {
         uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
+        uint256 rewardCoinsDept;
         //
         // We do some fancy math here. Basically, any point in time, the amount of SWINGBYs
         // entitled to a user but is pending to be distributed is:
@@ -43,6 +45,16 @@ contract ChefLink is Ownable {
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Info of each pool.
     PoolInfo[] public poolInfo;
+    // Farming contract
+    address public farmContract;
+    // PID num of farming contract.
+    uint256 public ppid;
+    // Farming coin.
+    address public farmCoin;
+    // Total earned of farming coin
+    uint256 public toalEarned;
+    // Total locked farm LPT on farming contract.
+    uint256 public totalLockedFarmLPT;
     // Info of each user that stakes LP tokens.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
@@ -61,13 +73,19 @@ contract ChefLink is Ownable {
         IERC20 _swingby,
         uint256 _swingbyPerBlock,
         uint256 _startBlock,
-        uint256 _bonusEndBlock
+        uint256 _bonusEndBlock,
+        address _farmCoin,
+        address _farmContract,
+        uint256 _ppid
     ) public onlyOwner {
         require(address(swingby) == address(0x0), "failed: init");
         swingby = _swingby;
         swingbyPerBlock = _swingbyPerBlock;
         bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
+        farmCoin = _farmCoin;
+        farmContract = _farmContract;
+        ppid = _ppid;
     }
 
     function poolLength() external view returns (uint256) {
@@ -84,8 +102,9 @@ contract ChefLink is Ownable {
         if (_withUpdate) {
             massUpdatePools();
         }
-        uint256 lastRewardBlock =
-            block.number > startBlock ? block.number : startBlock;
+        uint256 lastRewardBlock = block.number > startBlock
+            ? block.number
+            : startBlock;
         totalAllocPoint = totalAllocPoint.add(_allocPoint);
         poolInfo.push(
             PoolInfo({
@@ -146,12 +165,14 @@ contract ChefLink is Ownable {
         uint256 accSwingbyPerShare = pool.accSwingbyPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 multiplier =
-                getMultiplier(pool.lastRewardBlock, block.number);
-            uint256 swingbyReward =
-                multiplier.mul(swingbyPerBlock).mul(pool.allocPoint).div(
-                    totalAllocPoint
-                );
+            uint256 multiplier = getMultiplier(
+                pool.lastRewardBlock,
+                block.number
+            );
+            uint256 swingbyReward = multiplier
+            .mul(swingbyPerBlock)
+            .mul(pool.allocPoint)
+            .div(totalAllocPoint);
             accSwingbyPerShare = accSwingbyPerShare.add(
                 swingbyReward.mul(1e12).div(lpSupply)
             );
@@ -180,10 +201,10 @@ contract ChefLink is Ownable {
             return;
         }
         uint256 multiplier = getMultiplier(pool.lastRewardBlock, block.number);
-        uint256 swingbyReward =
-            multiplier.mul(swingbyPerBlock).mul(pool.allocPoint).div(
-                totalAllocPoint
-            );
+        uint256 swingbyReward = multiplier
+        .mul(swingbyPerBlock)
+        .mul(pool.allocPoint)
+        .div(totalAllocPoint);
         pool.accSwingbyPerShare = pool.accSwingbyPerShare.add(
             swingbyReward.mul(1e12).div(lpSupply)
         );
@@ -196,10 +217,11 @@ contract ChefLink is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         updatePool(_pid);
         if (user.amount > 0) {
-            uint256 pending =
-                user.amount.mul(pool.accSwingbyPerShare).div(1e12).sub(
-                    user.rewardDebt
-                );
+            uint256 pending = user
+            .amount
+            .mul(pool.accSwingbyPerShare)
+            .div(1e12)
+            .sub(user.rewardDebt);
             safeSWINGBYTransfer(msg.sender, pending);
         }
         pool.lpToken.safeTransferFrom(
@@ -207,8 +229,15 @@ contract ChefLink is Ownable {
             address(this),
             _amount
         );
+        // Staking into farming contract.
+        _stake(_pid);
+        // Send out Earned coins.
+        _sendEarnedCoins(_pid, msg.sender);
+
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
+
+        // Send FarmCoins
         emit Deposit(msg.sender, _pid, _amount);
     }
 
@@ -218,25 +247,65 @@ contract ChefLink is Ownable {
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
-        uint256 pending =
-            user.amount.mul(pool.accSwingbyPerShare).div(1e12).sub(
-                user.rewardDebt
-            );
+        uint256 pending = user
+        .amount
+        .mul(pool.accSwingbyPerShare)
+        .div(1e12)
+        .sub(user.rewardDebt);
         safeSWINGBYTransfer(msg.sender, pending);
-        user.amount = user.amount.sub(_amount);
-        user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
+        // Withdraw LPT and FarmCoins.
+        _unStake(_amount);
+        // Send out EarnedCoins
+        _sendEarnedCoins(_pid, msg.sender);
+        // Send out LPT to user.
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
+    }
+
+    function _stake(uint256 _pid) internal {
+        uint256 pendings = IPancakeswapFarm(farmContract).pendingCake(
+            ppid,
+            address(this)
+        );
+        toalEarned = toalEarned.add(pendings);
+        PoolInfo memory pool = poolInfo[_pid];
+        // All amount of LPT will be staked. (includes randomly sent LPT to here.)
+        uint256 amount = pool.lpToken.balanceOf(address(this));
+        totalLockedFarmLPT = totalLockedFarmLPT.add(amount);
+        pool.lpToken.safeIncreaseAllowance(farmContract, amount);
+        IPancakeswapFarm(farmContract).deposit(ppid, amount);
+    }
+
+    function _unStake(uint256 _amount) internal {
+        uint256 pendings = IPancakeswapFarm(farmContract).pendingCake(
+            ppid,
+            address(this)
+        );
+        toalEarned = toalEarned.add(pendings);
+        totalLockedFarmLPT = totalLockedFarmLPT.sub(_amount);
+        IPancakeswapFarm(farmContract).withdraw(ppid, _amount);
+    }
+
+    function _sendEarnedCoins(uint256 _pid, address _user) internal {
+        UserInfo storage user = userInfo[_pid][_user];
+        uint256 credit = toalEarned.mul(user.amount).div(totalLockedFarmLPT);
+        if (user.rewardCoinsDept < credit) {
+            uint256 amt = credit.sub(user.rewardCoinsDept);
+            IERC20(farmCoin).transfer(msg.sender, amt);
+            user.rewardCoinsDept = user.rewardCoinsDept.add(amt);
+        }
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY. (TODO: proxy staking)
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
+        IPancakeswapFarm(farmContract).withdraw(ppid, user.amount);
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
-        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
+        user.rewardCoinsDept = 0;
+        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
     }
 
     // Safe swingby transfer function, just in case if rounding error causes pool to not have enough SWINGBYs.
