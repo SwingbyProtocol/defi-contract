@@ -54,7 +54,7 @@ contract ChefLink is Ownable {
     // Total earned of farming coin
     uint256 public toalEarned;
     // Total locked farm LPT on farming contract.
-    uint256 public totalLockedFarmLPT;
+    uint256 public totalLockedLPT;
     // Info of each user that stakes LP tokens.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
@@ -233,7 +233,8 @@ contract ChefLink is Ownable {
         _stake(_pid);
         // Send out Earned coins.
         _sendEarnedCoins(_pid, msg.sender);
-
+        // Add total locked amount of LPT
+        totalLockedLPT = totalLockedLPT.add(_amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
 
@@ -257,6 +258,8 @@ contract ChefLink is Ownable {
         _unStake(_amount);
         // Send out EarnedCoins
         _sendEarnedCoins(_pid, msg.sender);
+        // Remove total locked amount of LPT
+        totalLockedLPT = totalLockedLPT.sub(_amount);
         // Send out LPT to user.
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
@@ -271,7 +274,6 @@ contract ChefLink is Ownable {
         PoolInfo memory pool = poolInfo[_pid];
         // All amount of LPT will be staked. (includes randomly sent LPT to here.)
         uint256 amount = pool.lpToken.balanceOf(address(this));
-        totalLockedFarmLPT = totalLockedFarmLPT.add(amount);
         pool.lpToken.safeIncreaseAllowance(farmContract, amount);
         IPancakeswapFarm(farmContract).deposit(ppid, amount);
     }
@@ -282,13 +284,12 @@ contract ChefLink is Ownable {
             address(this)
         );
         toalEarned = toalEarned.add(pendings);
-        totalLockedFarmLPT = totalLockedFarmLPT.sub(_amount);
         IPancakeswapFarm(farmContract).withdraw(ppid, _amount);
     }
 
     function _sendEarnedCoins(uint256 _pid, address _user) internal {
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 credit = toalEarned.mul(user.amount).div(totalLockedFarmLPT);
+        uint256 credit = toalEarned.mul(user.amount).div(totalLockedLPT);
         if (user.rewardCoinsDept < credit) {
             uint256 amt = credit.sub(user.rewardCoinsDept);
             IERC20(farmCoin).transfer(msg.sender, amt);
