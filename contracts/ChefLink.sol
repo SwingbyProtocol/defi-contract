@@ -163,7 +163,7 @@ contract ChefLink is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accSwingbyPerShare = pool.accSwingbyPerShare;
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        uint256 lpSupply = totalLockedLPT;
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(
                 pool.lastRewardBlock,
@@ -195,7 +195,7 @@ contract ChefLink is Ownable {
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
-        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        uint256 lpSupply = totalLockedLPT;
         if (lpSupply == 0) {
             pool.lastRewardBlock = block.number;
             return;
