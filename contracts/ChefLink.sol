@@ -234,9 +234,9 @@ contract ChefLink is Ownable {
             _stake(_pid);
             // Send out Earned coins.
             _sendEarnedCoins(_pid, msg.sender);
-            // Add total locked amount of LPT
-            totalLockedLPT = totalLockedLPT.add(_amount);
         }
+        // Add total locked amount of LPT
+        totalLockedLPT = totalLockedLPT.add(_amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
 
@@ -261,9 +261,9 @@ contract ChefLink is Ownable {
             _unStake(_amount);
             // Send out EarnedCoins
             _sendEarnedCoins(_pid, msg.sender);
-            // Remove total locked amount of LPT
-            totalLockedLPT = totalLockedLPT.sub(_amount);
         }
+        // Remove total locked amount of LPT
+        totalLockedLPT = totalLockedLPT.sub(_amount);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
