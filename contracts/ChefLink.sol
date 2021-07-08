@@ -307,7 +307,12 @@ contract ChefLink is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         if (farmCoin != address(0x0)) {
+            uint256 pendings = IPancakeswapFarm(farmContract).pendingCake(
+                ppid,
+                address(this)
+            );
             IPancakeswapFarm(farmContract).withdraw(ppid, user.amount);
+            IERC20(farmCoin).transfer(owner(), pendings);
         }
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         user.amount = 0;
