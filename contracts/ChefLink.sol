@@ -294,11 +294,13 @@ contract ChefLink is Ownable {
 
     function _sendEarnedCoins(uint256 _pid, address _user) internal {
         UserInfo storage user = userInfo[_pid][_user];
-        uint256 credit = toalEarned.mul(user.amount).div(totalLockedLPT);
-        if (user.rewardCoinsDept < credit) {
-            uint256 amt = credit.sub(user.rewardCoinsDept);
-            IERC20(farmCoin).transfer(msg.sender, amt);
-            user.rewardCoinsDept = user.rewardCoinsDept.add(amt);
+        if (totalLockedLPT > 0) {
+            uint256 credit = toalEarned.mul(user.amount).div(totalLockedLPT);
+            if (user.rewardCoinsDept < credit) {
+                uint256 amt = credit.sub(user.rewardCoinsDept);
+                IERC20(farmCoin).transfer(msg.sender, amt);
+                user.rewardCoinsDept = user.rewardCoinsDept.add(amt);
+            }
         }
     }
 
