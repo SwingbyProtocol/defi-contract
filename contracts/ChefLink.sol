@@ -244,6 +244,7 @@ contract ChefLink is Ownable {
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
+        pool.totalStaked = pool.totalStaked.add(_amount);
         // Send FarmCoins
         emit Deposit(msg.sender, _pid, _amount);
     }
@@ -269,6 +270,7 @@ contract ChefLink is Ownable {
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
+        pool.totalStaked = pool.totalStaked.sub(_amount);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
     }
