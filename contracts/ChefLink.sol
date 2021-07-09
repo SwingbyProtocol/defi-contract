@@ -295,13 +295,12 @@ contract ChefLink is Ownable {
     }
 
     function _sendEarnedCoins(uint256 _pid, address _user) internal {
-        UserInfo storage user = userInfo[_pid][_user];
-        uint256 pending = user
-        .amount
-        .mul(pool.accSwingbyPerShare)
-        .div(1e12)
-        .sub(user.rewardDebt);
-        safeSWINGBYTransfer(msg.sender, pending);
+        UserInfo memory user = userInfo[_pid][_user];
+        PoolInfo memory pool = poolInfo[_pid];
+        uint256 pending = user.amount.mul(pool.accCoinsPerShare).div(1e12).sub(
+            user.rewardCoinsDept
+        );
+        IERC20(farmCoin).transfer(msg.sender, pending);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY. (TODO: proxy staking)
