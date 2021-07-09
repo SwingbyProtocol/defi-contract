@@ -35,6 +35,10 @@ contract ChefLink is Ownable {
         uint256 lastRewardBlock; // Last block number that SWINGBYs distribution occurs.
         uint256 accSwingbyPerShare; // Accumulated SWINGBYs per share, times 1e12. See below.
         uint256 accCoinsPerShare;
+        uint256 totalStaked;
+        address farmCoin;
+        address farmContract;
+        uint256 ppid;
     }
     // The SWINGBY TOKEN!
     IERC20 public swingby;
@@ -46,16 +50,6 @@ contract ChefLink is Ownable {
     uint256 public constant BONUS_MULTIPLIER = 1;
     // Info of each pool.
     PoolInfo[] public poolInfo;
-    // Farming contract
-    address public farmContract;
-    // PID num of farming contract.
-    uint256 public ppid;
-    // Farming coin.
-    address public farmCoin;
-    // Remain rewards of farming coin
-    uint256 public remainRewards;
-    // Total locked farm LPT on farming contract.
-    uint256 public totalLockedLPT;
     // Info of each user that stakes LP tokens.
     mapping(uint256 => mapping(address => UserInfo)) public userInfo;
     // Total allocation poitns. Must be the sum of all allocation points in all pools.
@@ -74,19 +68,13 @@ contract ChefLink is Ownable {
         IERC20 _swingby,
         uint256 _swingbyPerBlock,
         uint256 _startBlock,
-        uint256 _bonusEndBlock,
-        address _farmCoin,
-        address _farmContract,
-        uint256 _ppid
+        uint256 _bonusEndBlock
     ) public onlyOwner {
         require(address(swingby) == address(0x0), "failed: init");
         swingby = _swingby;
         swingbyPerBlock = _swingbyPerBlock;
-        bonusEndBlock = _bonusEndBlock;
         startBlock = _startBlock;
-        farmCoin = _farmCoin;
-        farmContract = _farmContract;
-        ppid = _ppid;
+        bonusEndBlock = _bonusEndBlock;
     }
 
     function poolLength() external view returns (uint256) {
@@ -98,6 +86,9 @@ contract ChefLink is Ownable {
     function add(
         uint256 _allocPoint,
         IERC20 _lpToken,
+        address _farmCoin,
+        address _farmContract,
+        uint256 _ppid,
         bool _withUpdate
     ) public onlyOwner {
         if (_withUpdate) {
@@ -113,7 +104,11 @@ contract ChefLink is Ownable {
                 allocPoint: _allocPoint,
                 lastRewardBlock: lastRewardBlock,
                 accSwingbyPerShare: 0,
-                accCoinsPerShare: 0
+                accCoinsPerShare: 0,
+                totalStaked: 0,
+                farmCoin: _farmCoin,
+                farmContract: _farmContract,
+                ppid: _ppid
             })
         );
     }
@@ -165,7 +160,7 @@ contract ChefLink is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_user];
         uint256 accSwingbyPerShare = pool.accSwingbyPerShare;
-        uint256 lpSupply = totalLockedLPT;
+        uint256 lpSupply = pool.totalStaked;
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
             uint256 multiplier = getMultiplier(
                 pool.lastRewardBlock,
@@ -197,7 +192,7 @@ contract ChefLink is Ownable {
         if (block.number <= pool.lastRewardBlock) {
             return;
         }
-        uint256 lpSupply = totalLockedLPT;
+        uint256 lpSupply = pool.totalStaked;
         if (lpSupply == 0) {
             pool.lastRewardBlock = block.number;
             return;
@@ -210,9 +205,9 @@ contract ChefLink is Ownable {
         pool.accSwingbyPerShare = pool.accSwingbyPerShare.add(
             swingbyReward.mul(1e12).div(lpSupply)
         );
-        if (farmCoin != address(0x0)) {
-            uint256 pendings = IPancakeswapFarm(farmContract).pendingCake(
-                ppid,
+        if (pool.farmCoin != address(0x0)) {
+            uint256 pendings = IPancakeswapFarm(pool.farmContract).pendingCake(
+                pool.ppid,
                 address(this)
             );
             pool.accCoinsPerShare = pool.accCoinsPerShare.add(
@@ -240,14 +235,12 @@ contract ChefLink is Ownable {
             address(this),
             _amount
         );
-        if (farmCoin != address(0x0)) {
+        if (pool.farmCoin != address(0x0)) {
             // Staking into farming contract.
             _stake(_pid);
             // Send out Earned coins.
             _sendEarnedCoins(_pid, msg.sender);
         }
-        // Add total locked amount of LPT
-        totalLockedLPT = totalLockedLPT.add(_amount);
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
@@ -267,14 +260,12 @@ contract ChefLink is Ownable {
         .div(1e12)
         .sub(user.rewardDebt);
         safeSWINGBYTransfer(msg.sender, pending);
-        if (farmCoin != address(0x0)) {
+        if (pool.farmCoin != address(0x0)) {
             // Withdraw LPT and FarmCoins.
-            _unStake(_amount);
+            _unStake(_pid, _amount);
             // Send out EarnedCoins
             _sendEarnedCoins(_pid, msg.sender);
         }
-        // Remove total locked amount of LPT
-        totalLockedLPT = totalLockedLPT.sub(_amount);
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
@@ -286,12 +277,13 @@ contract ChefLink is Ownable {
         PoolInfo memory pool = poolInfo[_pid];
         // All amount of LPT will be staked. (includes randomly sent LPT to here.)
         uint256 amount = pool.lpToken.balanceOf(address(this));
-        pool.lpToken.safeIncreaseAllowance(farmContract, amount);
-        IPancakeswapFarm(farmContract).deposit(ppid, amount);
+        pool.lpToken.safeIncreaseAllowance(pool.farmContract, amount);
+        IPancakeswapFarm(pool.farmContract).deposit(pool.ppid, amount);
     }
 
-    function _unStake(uint256 _amount) internal {
-        IPancakeswapFarm(farmContract).withdraw(ppid, _amount);
+    function _unStake(uint256 _pid, uint256 _amount) internal {
+        PoolInfo memory pool = poolInfo[_pid];
+        IPancakeswapFarm(pool.farmContract).withdraw(pool.ppid, _amount);
     }
 
     function _sendEarnedCoins(uint256 _pid, address _user) internal {
@@ -300,22 +292,26 @@ contract ChefLink is Ownable {
         uint256 pending = user.amount.mul(pool.accCoinsPerShare).div(1e12).sub(
             user.rewardCoinsDept
         );
-        IERC20(farmCoin).transfer(msg.sender, pending);
+        IERC20(pool.farmCoin).transfer(msg.sender, pending);
     }
 
     // Withdraw without caring about rewards. EMERGENCY ONLY. (TODO: proxy staking)
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        if (farmCoin != address(0x0)) {
-            uint256 pendings = IPancakeswapFarm(farmContract).pendingCake(
-                ppid,
+        if (pool.farmCoin != address(0x0)) {
+            uint256 pendings = IPancakeswapFarm(pool.farmContract).pendingCake(
+                pool.ppid,
                 address(this)
             );
-            IPancakeswapFarm(farmContract).withdraw(ppid, user.amount);
-            IERC20(farmCoin).transfer(owner(), pendings);
+            IPancakeswapFarm(pool.farmContract).withdraw(
+                pool.ppid,
+                user.amount
+            );
+            IERC20(pool.farmCoin).transfer(owner(), pendings);
         }
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
+        pool.totalStaked = pool.totalStaked.sub(user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
         user.rewardCoinsDept = 0;
