@@ -51,8 +51,8 @@ contract ChefLink is Ownable {
     uint256 public ppid;
     // Farming coin.
     address public farmCoin;
-    // Total earned of farming coin
-    uint256 public toalEarned;
+    // Remain rewards of farming coin
+    uint256 public remainRewards;
     // Total locked farm LPT on farming contract.
     uint256 public totalLockedLPT;
     // Info of each user that stakes LP tokens.
@@ -275,7 +275,7 @@ contract ChefLink is Ownable {
             ppid,
             address(this)
         );
-        toalEarned = toalEarned.add(pendings);
+        remainRewards = remainRewards.add(pendings);
         PoolInfo memory pool = poolInfo[_pid];
         // All amount of LPT will be staked. (includes randomly sent LPT to here.)
         uint256 amount = pool.lpToken.balanceOf(address(this));
@@ -288,18 +288,19 @@ contract ChefLink is Ownable {
             ppid,
             address(this)
         );
-        toalEarned = toalEarned.add(pendings);
+        remainRewards = remainRewards.add(pendings);
         IPancakeswapFarm(farmContract).withdraw(ppid, _amount);
     }
 
     function _sendEarnedCoins(uint256 _pid, address _user) internal {
         UserInfo storage user = userInfo[_pid][_user];
         if (totalLockedLPT > 0) {
-            uint256 credit = toalEarned.mul(user.amount).div(totalLockedLPT);
+            uint256 credit = remainRewards.mul(user.amount).div(totalLockedLPT);
             if (user.rewardCoinsDept < credit) {
                 uint256 amt = credit.sub(user.rewardCoinsDept);
                 IERC20(farmCoin).transfer(msg.sender, amt);
                 user.rewardCoinsDept = user.rewardCoinsDept.add(amt);
+                remainRewards = remainRewards.sub(amt);
             }
         }
     }
