@@ -223,7 +223,7 @@ contract ChefLink is Ownable {
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(pool.active, "Pool is not active");
+        require(pool.active, "Failed: Pool is not active");
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending = user
@@ -256,7 +256,7 @@ contract ChefLink is Ownable {
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(pool.active, "Pool is not active");
+        require(pool.active, "Failed: Pool is not active");
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
         uint256 pending = user
@@ -318,7 +318,7 @@ contract ChefLink is Ownable {
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        require(!pool.active, "Pool is active");
+        require(!pool.active, "Failed: Pool is active");
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         pool.totalStaked = pool.totalStaked.sub(user.amount);
         user.amount = 0;
