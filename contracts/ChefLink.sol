@@ -15,7 +15,7 @@ contract ChefLink is Ownable {
     struct UserInfo {
         uint256 amount; // How many LP tokens the user has provided.
         uint256 rewardDebt; // Reward debt. See explanation below.
-        uint256 rewardCoinsDept;
+        uint256 rewardCoinsDebt;
         //
         // We do some fancy math here. Basically, any point in time, the amount of SWINGBYs
         // entitled to a user but is pending to be distributed is:
@@ -246,7 +246,7 @@ contract ChefLink is Ownable {
         }
         user.amount = user.amount.add(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
-        user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
+        user.rewardCoinsDebt = user.amount.mul(pool.accCoinsPerShare).div(1e12);
         pool.totalStaked = pool.totalStaked.add(_amount);
         // Send FarmCoins
         emit Deposit(msg.sender, _pid, _amount);
@@ -273,7 +273,7 @@ contract ChefLink is Ownable {
         }
         user.amount = user.amount.sub(_amount);
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
-        user.rewardCoinsDept = user.amount.mul(pool.accCoinsPerShare).div(1e12);
+        user.rewardCoinsDebt = user.amount.mul(pool.accCoinsPerShare).div(1e12);
         pool.totalStaked = pool.totalStaked.sub(_amount);
         pool.lpToken.safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, _pid, _amount);
@@ -296,7 +296,7 @@ contract ChefLink is Ownable {
         UserInfo memory user = userInfo[_pid][_user];
         PoolInfo memory pool = poolInfo[_pid];
         uint256 pending = user.amount.mul(pool.accCoinsPerShare).div(1e12).sub(
-            user.rewardCoinsDept
+            user.rewardCoinsDebt
         );
         IERC20(pool.farmCoin).transfer(msg.sender, pending);
     }
@@ -323,7 +323,7 @@ contract ChefLink is Ownable {
         pool.totalStaked = pool.totalStaked.sub(user.amount);
         user.amount = 0;
         user.rewardDebt = 0;
-        user.rewardCoinsDept = 0;
+        user.rewardCoinsDebt = 0;
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
     }
 
