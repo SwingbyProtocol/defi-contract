@@ -319,11 +319,12 @@ contract ChefLink is Ownable {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
         require(!pool.active, "Failed: Pool is active");
-        pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         pool.totalStaked = pool.totalStaked.sub(user.amount);
+        uint256 amount = user.amount;
         user.amount = 0;
         user.rewardDebt = 0;
         user.rewardCoinsDebt = 0;
+        pool.lpToken.safeTransfer(address(msg.sender), amount);
         emit EmergencyWithdraw(msg.sender, _pid, user.amount);
     }
 
