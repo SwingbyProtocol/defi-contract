@@ -298,7 +298,7 @@ contract ChefLink is Ownable {
         uint256 pending = user.amount.mul(pool.accCoinsPerShare).div(1e12).sub(
             user.rewardCoinsDebt
         );
-        IERC20(pool.farmCoin).transfer(msg.sender, pending);
+        IERC20(pool.farmCoin).safeTransfer(msg.sender, pending);
     }
 
     function kynkyuJitaiSengen(uint256 _pid) public onlyOwner {
@@ -325,7 +325,7 @@ contract ChefLink is Ownable {
         user.rewardDebt = 0;
         user.rewardCoinsDebt = 0;
         pool.lpToken.safeTransfer(address(msg.sender), amount);
-        emit EmergencyWithdraw(msg.sender, _pid, user.amount);
+        emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
     // Safe swingby transfer function, just in case if rounding error causes pool to not have enough SWINGBYs.
