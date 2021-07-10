@@ -39,6 +39,7 @@ contract ChefLink is Ownable {
         address farmCoin;
         address farmContract;
         uint256 ppid;
+        bool active;
     }
     // The SWINGBY TOKEN!
     IERC20 public swingby;
@@ -108,7 +109,8 @@ contract ChefLink is Ownable {
                 totalStaked: 0,
                 farmCoin: _farmCoin,
                 farmContract: _farmContract,
-                ppid: _ppid
+                ppid: _ppid,
+                active: true
             })
         );
     }
@@ -221,6 +223,7 @@ contract ChefLink is Ownable {
     function deposit(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
+        require(pool.active, "Pool is not active");
         updatePool(_pid);
         if (user.amount > 0) {
             uint256 pending = user
@@ -253,6 +256,7 @@ contract ChefLink is Ownable {
     function withdraw(uint256 _pid, uint256 _amount) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
+        require(pool.active, "Pool is not active");
         require(user.amount >= _amount, "withdraw: not good");
         updatePool(_pid);
         uint256 pending = user
@@ -297,21 +301,24 @@ contract ChefLink is Ownable {
         IERC20(pool.farmCoin).transfer(msg.sender, pending);
     }
 
+    function kynkyuJitaiSengen(uint256 _pid) public onlyOwner {
+        PoolInfo storage pool = poolInfo[_pid];
+        if (pool.farmCoin != address(0x0)) {
+            IPancakeswapFarm(pool.farmContract).emergencyWithdraw(pool.ppid);
+        }
+        pool.active = false;
+    }
+
+    function kynkyuJitaiSengenKaijo(uint256 _pid) public onlyOwner {
+        PoolInfo storage pool = poolInfo[_pid];
+        pool.active = true;
+    }
+
     // Withdraw without caring about rewards. EMERGENCY ONLY. (TODO: proxy staking)
     function emergencyWithdraw(uint256 _pid) public {
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][msg.sender];
-        if (pool.farmCoin != address(0x0)) {
-            uint256 pendings = IPancakeswapFarm(pool.farmContract).pendingCake(
-                pool.ppid,
-                address(this)
-            );
-            IPancakeswapFarm(pool.farmContract).withdraw(
-                pool.ppid,
-                user.amount
-            );
-            IERC20(pool.farmCoin).transfer(owner(), pendings);
-        }
+        require(!pool.active, "Pool is active");
         pool.lpToken.safeTransfer(address(msg.sender), user.amount);
         pool.totalStaked = pool.totalStaked.sub(user.amount);
         user.amount = 0;
