@@ -233,11 +233,13 @@ contract ChefLink is Ownable {
             .sub(user.rewardDebt);
             safeSWINGBYTransfer(msg.sender, pending);
         }
-        pool.lpToken.safeTransferFrom(
-            address(msg.sender),
-            address(this),
-            _amount
-        );
+        if (_amount != 0) {
+            pool.lpToken.safeTransferFrom(
+                address(msg.sender),
+                address(this),
+                _amount
+            );
+        }
         if (pool.farmCoin != address(0x0)) {
             // Staking into farming contract.
             _stake(_pid);
@@ -275,7 +277,9 @@ contract ChefLink is Ownable {
         user.rewardDebt = user.amount.mul(pool.accSwingbyPerShare).div(1e12);
         user.rewardCoinsDebt = user.amount.mul(pool.accCoinsPerShare).div(1e12);
         pool.totalStaked = pool.totalStaked.sub(_amount);
-        pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        if (_amount != 0) {
+            pool.lpToken.safeTransfer(address(msg.sender), _amount);
+        }
         emit Withdraw(msg.sender, _pid, _amount);
     }
 
@@ -324,7 +328,9 @@ contract ChefLink is Ownable {
         user.amount = 0;
         user.rewardDebt = 0;
         user.rewardCoinsDebt = 0;
-        pool.lpToken.safeTransfer(address(msg.sender), amount);
+        if (amount != 0) {
+            pool.lpToken.safeTransfer(address(msg.sender), amount);
+        }
         emit EmergencyWithdraw(msg.sender, _pid, amount);
     }
 
