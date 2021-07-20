@@ -7,7 +7,7 @@ module.exports = async function (done) {
     const farmCoin = "0x22dc6cf365476465ca3897dc5a23e7cb0a65a482" // cakes on bsc_testnet 
     const farmContract = "0x22f6de9b90783fa94afb08d34fcfda0ceb07988b"
     const ppid = 1
-    const tx = await cl.add(allocPoint, LPT, farmCoin, farmContract, ppid, true, { gas: 150000 })
+    const tx = await cl.add(allocPoint, LPT, farmCoin, farmContract, ppid, true, { gas: 300000 })
     console.log(tx.tx)
     done()
 };
