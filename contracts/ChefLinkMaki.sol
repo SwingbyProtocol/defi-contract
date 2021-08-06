@@ -328,11 +328,10 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             ? reserveBTC.sub(reserveBTCT)
             : reserveBTCT.sub(reserveBTC);
 
-        uint256 moved = tilt > latestTilt
-            ? tilt.sub(latestTilt)
-            : latestTilt.sub(tilt);
+        uint256 moved = tilt < latestTilt ? latestTilt.sub(tilt) : 0;
 
-        rewardPerBlock = rewardPerBlock.add(moved.mul(1e10).div(diff)); // moved == decimals 8
+        if (isDynamicBTC || isDynamicBTCT)
+            rewardPerBlock = rewardPerBlock.add(moved.mul(1e10).div(diff)); // moved == decimals 8
 
         if (rewardPerBlock >= defaultRewardPerBlock.mul(2)) {
             rewardPerBlock = defaultRewardPerBlock.mul(2);
@@ -361,6 +360,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         if (rateFroDepositBTCT > 0) {
             isDynamicBTC = true;
         }
+        latestTilt = tilt;
     }
 
     /*
