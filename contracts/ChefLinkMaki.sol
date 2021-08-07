@@ -22,10 +22,10 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
     // Accrued token per share
     uint256 public accTokenPerShare;
 
-    // The block number when CAKE mining ends.
+    // The block number when token distribute ends.
     uint256 public bonusEndBlock;
 
-    // The block number when CAKE mining starts.
+    // The block number when token distribute starts.
     uint256 public startBlock;
 
     // The block number of the last pool update
@@ -274,9 +274,9 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
         if (block.number > lastRewardBlock && stakedTokenSupply != 0) {
             uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
-            uint256 cakeReward = multiplier.mul(rewardPerBlock);
+            uint256 tokenReward = multiplier.mul(rewardPerBlock);
             uint256 adjustedTokenPerShare = accTokenPerShare.add(
-                cakeReward.mul(1e18).div(stakedTokenSupply)
+                tokenReward.mul(1e18).div(stakedTokenSupply)
             );
             return
                 user.amount.mul(adjustedTokenPerShare).div(1e18).sub(
@@ -307,9 +307,9 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         _updateRewardPerBlock();
 
         uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
-        uint256 cakeReward = multiplier.mul(rewardPerBlock);
+        uint256 tokenReward = multiplier.mul(rewardPerBlock);
         accTokenPerShare = accTokenPerShare.add(
-            cakeReward.mul(1e18).div(stakedTokenSupply)
+            tokenReward.mul(1e18).div(stakedTokenSupply)
         );
         lastRewardBlock = block.number;
     }
@@ -355,9 +355,11 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         uint256 feesForDepositBTC = sc.getDepositFeeRate(address(0x0), 0);
         uint256 feesForDepositBTCT = sc.getDepositFeeRate(BTCT_ADDR, 0);
 
+        // if the deposit fees for BTC are exist, have to be activated isDynamicBTCT
         if (feesForDepositBTC > 0) {
             isDynamicBTCT = true;
         }
+        // if the deposit fees for BTC are exist, have to be activated isDynamicBTC
         if (feesForDepositBTCT > 0) {
             isDynamicBTC = true;
         }
