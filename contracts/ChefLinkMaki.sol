@@ -314,6 +314,38 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         lastRewardBlock = block.number;
     }
 
+    function getExpectedPerBlock(address _token, uint256 _amountOfFloat)
+        public
+        returns (uint256 updatedRewards)
+    {
+        uint256 diff = block.number - lastRewardBlock;
+        if (diff != uint256(0)) {
+            diff = uint256(1);
+        }
+        updatedRewards = rewardPerBlock;
+        ISwapContractMin sc = ISwapContractMin(swapContract);
+        (uint256 reserveBTC, uint256 reserveBTCT) = sc.getFloatReserve(
+            address(0),
+            BTCT_ADDR
+        );
+        if (_token == address(0x0)) reserveBTC = reserveBTC.add(_amountOfFloat);
+        if (_token == BTCT_ADDR) reserveBTCT = reserveBTCT.add(_amountOfFloat);
+
+        uint256 tilt = (reserveBTC.sub(reserveBTCT) > 0)
+            ? reserveBTC.sub(reserveBTCT)
+            : reserveBTCT.sub(reserveBTC);
+
+        uint256 moved = tilt < latestTilt ? latestTilt.sub(tilt) : 0;
+
+        if (isDynamicBTC || isDynamicBTCT)
+            updatedRewards = rewardPerBlock.add(moved.mul(1e10).div(diff)); // moved == decimals 8
+
+        if (updatedRewards >= defaultRewardPerBlock.mul(2)) {
+            updatedRewards = defaultRewardPerBlock.mul(2);
+        }
+        return updatedRewards;
+    }
+
     function _updateRewardPerBlock() internal {
         uint256 diff = block.number - lastRewardBlock;
         if (diff != uint256(0)) {
