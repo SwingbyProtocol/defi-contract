@@ -351,13 +351,14 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             rewardPerBlock = defaultRewardPerBlock;
         }
 
-        uint256 rateForDepositBTC = sc.getDepositFeeRate(address(0x0), 0);
-        uint256 rateFroDepositBTCT = sc.getDepositFeeRate(BTCT_ADDR, 0);
+        // Check the deposit fees rate for checking the tilt of float balances
+        uint256 feesForDepositBTC = sc.getDepositFeeRate(address(0x0), 0);
+        uint256 feesForDepositBTCT = sc.getDepositFeeRate(BTCT_ADDR, 0);
 
-        if (rateForDepositBTC > 0) {
+        if (feesForDepositBTC > 0) {
             isDynamicBTCT = true;
         }
-        if (rateFroDepositBTCT > 0) {
+        if (feesForDepositBTCT > 0) {
             isDynamicBTC = true;
         }
         latestTilt = tilt;
