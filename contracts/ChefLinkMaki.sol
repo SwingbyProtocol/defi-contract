@@ -12,12 +12,15 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public swapContract;
+    ISwapContractMin public immutable swapContract;
 
-    address public BTCT_ADDR;
+    // The reward token
+    IERC20 public immutable rewardToken;
 
-    // Whether it is initialized
-    bool public isInitialized;
+    // The staked token
+    IERC20 public immutable stakedToken;
+
+    address public immutable BTCT_ADDR;
 
     // Accrued token per share
     uint256 public accTokenPerShare;
@@ -36,11 +39,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
     uint256 public defaultRewardPerBlock;
 
-    // The reward token
-    IERC20 public rewardToken;
-
-    // The staked token
-    IERC20 public stakedToken;
+    uint256 public maxRewardPerBlock;
 
     bool public isDynamicBTC;
     bool public isDynamicBTCT;
@@ -64,37 +63,20 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
     event RewardsStop(uint256 blockNumber);
     event Withdraw(address indexed user, uint256 amount);
 
-    constructor() public {}
-
-    /*
-     * @notice Initialize the contract
-     * @param _stakedToken: staked token address
-     * @param _rewardToken: reward token address
-     * @param _rewardPerBlock: reward per block (in rewardToken)
-     * @param _startBlock: start block
-     * @param _bonusEndBlock: end block
-     * @param _poolLimitPerUser: pool limit per user in stakedToken (if any, else 0)
-     * @param _admin: admin address with ownership
-     */
-    function initialize(
+    constructor(
         IERC20 _stakedToken,
         IERC20 _rewardToken,
-        address _swapContract,
+        ISwapContractMin _swapContract,
         address _btct,
         uint256 _rewardPerBlock,
         uint256 _startBlock,
-        uint256 _bonusEndBlock,
-        address _admin
-    ) external {
-        require(!isInitialized, "Already initialized");
-
-        // Make this contract initialized
-        isInitialized = true;
-
+        uint256 _bonusEndBlock
+    ) public {
         stakedToken = _stakedToken;
         rewardToken = _rewardToken;
         rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
+        maxRewardPerBlock = rewardPerBlock.mul(2);
         startBlock = _startBlock;
         bonusEndBlock = _bonusEndBlock;
         // Set the lastRewardBlock as the startBlock
@@ -102,9 +84,6 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
         swapContract = _swapContract;
         BTCT_ADDR = _btct;
-
-        // Transfer ownership to the admin address who becomes owner of the contract
-        transferOwnership(_admin);
     }
 
     /*
@@ -232,6 +211,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         require(block.number < startBlock, "Pool has started");
         rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
+        maxRewardPerBlock = rewardPerBlock.mul(2);
         emit NewRewardPerBlock(_rewardPerBlock);
     }
 
@@ -314,85 +294,82 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         lastRewardBlock = block.number;
     }
 
-    function getExpectedPerBlock(address _token, uint256 _amountOfFloat)
+    function getExpectedRewardPerBlock(address _token, uint256 _amountOfFloat)
         public
-        returns (uint256 updatedRewards)
+        returns (
+            uint256 updatedRewards,
+            uint256 reserveBTC,
+            uint256 reserveBTCT,
+            uint256 tilt
+        )
     {
-        uint256 diff = block.number - lastRewardBlock;
-        if (diff != uint256(0)) {
-            diff = uint256(1);
-        }
+        uint256 blocks = block.number - lastRewardBlock != 0
+            ? block.number.sub(lastRewardBlock)
+            : 1;
+
         updatedRewards = rewardPerBlock;
-        ISwapContractMin sc = ISwapContractMin(swapContract);
-        (uint256 reserveBTC, uint256 reserveBTCT) = sc.getFloatReserve(
+        (reserveBTC, reserveBTCT) = swapContract.getFloatReserve(
             address(0),
             BTCT_ADDR
         );
         if (_token == address(0x0)) reserveBTC = reserveBTC.add(_amountOfFloat);
         if (_token == BTCT_ADDR) reserveBTCT = reserveBTCT.add(_amountOfFloat);
 
-        uint256 tilt = (reserveBTC.sub(reserveBTCT) > 0)
+        tilt = (reserveBTC >= reserveBTCT)
             ? reserveBTC.sub(reserveBTCT)
             : reserveBTCT.sub(reserveBTC);
 
         uint256 moved = tilt < latestTilt ? latestTilt.sub(tilt) : 0;
 
         if (isDynamicBTC || isDynamicBTCT)
-            updatedRewards = rewardPerBlock.add(moved.mul(1e10).div(diff)); // moved == decimals 8
+            updatedRewards = rewardPerBlock.add(moved.mul(1e10).div(blocks)); // moved == decimals 8
 
-        if (updatedRewards >= defaultRewardPerBlock.mul(2)) {
-            updatedRewards = defaultRewardPerBlock.mul(2);
+        if (updatedRewards >= maxRewardPerBlock) {
+            updatedRewards = maxRewardPerBlock;
         }
-        return updatedRewards;
+        return (updatedRewards, reserveBTC, reserveBTCT, tilt);
     }
 
     function _updateRewardPerBlock() internal {
-        uint256 diff = block.number - lastRewardBlock;
-        if (diff != uint256(0)) {
-            diff = uint256(1);
-        }
-        ISwapContractMin sc = ISwapContractMin(swapContract);
-        (uint256 reserveBTC, uint256 reserveBTCT) = sc.getFloatReserve(
-            address(0),
-            BTCT_ADDR
-        );
-        uint256 tilt = (reserveBTC.sub(reserveBTCT) > 0)
-            ? reserveBTC.sub(reserveBTCT)
-            : reserveBTCT.sub(reserveBTC);
+        (
+            uint256 updatedRewards,
+            uint256 reserveBTC,
+            uint256 reserveBTCT,
+            uint256 tilt
+        ) = getExpectedRewardPerBlock(address(0x0), 0);
 
-        uint256 moved = tilt < latestTilt ? latestTilt.sub(tilt) : 0;
-
-        if (isDynamicBTC || isDynamicBTCT)
-            rewardPerBlock = rewardPerBlock.add(moved.mul(1e10).div(diff)); // moved == decimals 8
-
-        if (rewardPerBlock >= defaultRewardPerBlock.mul(2)) {
-            rewardPerBlock = defaultRewardPerBlock.mul(2);
-        }
+        rewardPerBlock = updatedRewards;
 
         // Reback the rate is going to be posive after reached to a threshold.
-        if (reserveBTC >= reserveBTCT && isDynamicBTC == true) {
+        if (reserveBTC >= reserveBTCT && isDynamicBTC) {
             // Disable additonal rewards rate for btc
             isDynamicBTC = false;
             rewardPerBlock = defaultRewardPerBlock;
         }
 
         // Reback the rate is going to be negative after reached to a threshold.
-        if (reserveBTCT >= reserveBTC && isDynamicBTCT == true) {
+        if (reserveBTCT >= reserveBTC && isDynamicBTCT) {
             // Disable additonal rewards rate for btct
             isDynamicBTCT = false;
             rewardPerBlock = defaultRewardPerBlock;
         }
 
         // Check the deposit fees rate for checking the tilt of float balances
-        uint256 feesForDepositBTC = sc.getDepositFeeRate(address(0x0), 0);
-        uint256 feesForDepositBTCT = sc.getDepositFeeRate(BTCT_ADDR, 0);
+        uint256 feesForDepositBTC = swapContract.getDepositFeeRate(
+            address(0x0),
+            0
+        );
+        uint256 feesForDepositBTCT = swapContract.getDepositFeeRate(
+            BTCT_ADDR,
+            0
+        );
 
         // if the deposit fees for BTC are exist, have to be activated isDynamicBTCT
-        if (feesForDepositBTC > 0) {
+        if (feesForDepositBTC != 0) {
             isDynamicBTCT = true;
         }
         // if the deposit fees for BTC are exist, have to be activated isDynamicBTC
-        if (feesForDepositBTCT > 0) {
+        if (feesForDepositBTCT != 0) {
             isDynamicBTC = true;
         }
         latestTilt = tilt;
