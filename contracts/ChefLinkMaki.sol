@@ -336,7 +336,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             uint256 reserveBTC,
             uint256 reserveBTCT,
             uint256 tilt
-        ) = getExpectedRewardPerBlock(address(0x0), 0);
+        ) = getExpectedRewardPerBlock(address(0x0), 0); // check the current numbers.
 
         rewardPerBlock = updatedRewards;
 
