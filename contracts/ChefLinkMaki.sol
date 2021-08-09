@@ -296,6 +296,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
     function getExpectedRewardPerBlock(address _token, uint256 _amountOfFloat)
         public
+        view
         returns (
             uint256 updatedRewards,
             uint256 reserveBTC,

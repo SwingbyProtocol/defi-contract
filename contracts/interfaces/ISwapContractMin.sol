@@ -11,5 +11,6 @@ interface ISwapContractMin {
 
     function getFloatReserve(address _tokenA, address _tokenB)
         external
+        view
         returns (uint256 reserveA, uint256 reserveB);
 }
