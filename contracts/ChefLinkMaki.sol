@@ -313,8 +313,11 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             address(0),
             BTCT_ADDR
         );
+
+        require(_token == address(0x0) || _token == BTCT_ADDR);
+
         if (_token == address(0x0)) reserveBTC = reserveBTC.add(_amountOfFloat);
-        if (_token == BTCT_ADDR) reserveBTCT = reserveBTCT.add(_amountOfFloat);
+        else reserveBTCT = reserveBTCT.add(_amountOfFloat);
 
         tilt = (reserveBTC >= reserveBTCT)
             ? reserveBTC.sub(reserveBTCT)
