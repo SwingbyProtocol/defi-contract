@@ -41,6 +41,8 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
     uint256 public maxRewardPerBlock;
 
+    bool public isDynamic;
+
     bool public isDynamicBTC;
     bool public isDynamicBTCT;
 
@@ -207,11 +209,17 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
      * @dev Only callable by owner.
      * @param _rewardPerBlock: the reward per block
      */
-    function updateRewardPerBlock(uint256 _rewardPerBlock) external onlyOwner {
+    function updateRewardPerBlock(uint256 _rewardPerBlock, bool _isDynamic)
+        external
+        onlyOwner
+    {
         require(block.number < startBlock, "Pool has started");
+        require(_rewardPerBlock >= 1e18);
+        require(_rewardPerBlock <= 3e18);
         rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
         maxRewardPerBlock = rewardPerBlock.mul(2);
+        isDynamic = _isDynamic;
         emit NewRewardPerBlock(_rewardPerBlock);
     }
 
@@ -283,8 +291,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             lastRewardBlock = block.number;
             return;
         }
-
-        _updateRewardPerBlock();
+        if (isDynamic) _updateRewardPerBlock();
 
         uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
         uint256 tokenReward = multiplier.mul(rewardPerBlock);
