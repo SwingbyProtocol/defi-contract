@@ -332,7 +332,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
         uint256 moved = tilt < latestTilt ? latestTilt.sub(tilt) : 0;
 
-        if ((isDynamicBTC || isDynamicBTCT) && moved != 0)
+        if ((isDynamicBTC || isDynamicBTCT) && moved != 0 && isDynamic)
             updatedRewards = rewardPerBlock.add(moved.mul(1e10).div(blocks)); // moved == decimals 8
 
         if (updatedRewards >= maxRewardPerBlock) {
