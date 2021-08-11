@@ -291,13 +291,12 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             lastRewardBlock = block.number;
             return;
         }
-        if (isDynamic) _updateRewardPerBlock();
-
         uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
         uint256 tokenReward = multiplier.mul(rewardPerBlock);
         accTokenPerShare = accTokenPerShare.add(
             tokenReward.mul(1e18).div(stakedTokenSupply)
         );
+        if (isDynamic) _updateRewardPerBlock();
         lastRewardBlock = block.number;
     }
 
