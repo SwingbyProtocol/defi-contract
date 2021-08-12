@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/SwingbyProtocol/defi-contract#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.1.0"
+    "@openzeppelin/contracts": "^4.1.0",
+    "@truffle/hdwallet-provider": "^1.4.3",
+    "bn.js": "^5.2.0"
   }
 }
