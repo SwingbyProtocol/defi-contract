@@ -214,7 +214,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         onlyOwner
     {
         require(block.number < startBlock, "Pool has started");
-        require(_rewardPerBlock >= 1e18);
+        require(_rewardPerBlock >= 1e17);
         require(_rewardPerBlock <= 3e18);
         rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
