@@ -41,7 +41,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
     uint256 public maxRewardPerBlock;
 
-    bool public isDynamic;
+    bool public isDynamic = true;
 
     bool public isDynamicBTC;
     bool public isDynamicBTCT;
