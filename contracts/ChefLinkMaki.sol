@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -257,7 +258,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
     function updateEndBlocks(uint256 _bonusEndBlock) external onlyOwner {
         require(
-            block.timestamp < _bonusEndBlock,
+            block.number < _bonusEndBlock,
             "New bonusEndBlock must be higher than current height"
         );
         bonusEndBlock = _bonusEndBlock;
