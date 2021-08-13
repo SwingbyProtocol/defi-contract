@@ -216,11 +216,10 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         uint256 _maxRewardPerBlock,
         bool _isDynamic
     ) external onlyOwner {
-        require(block.number < startBlock, "Pool has started");
         require(_rewardPerBlock >= 1e17);
         require(_rewardPerBlock <= 3e18);
-        rewardPerBlock = _rewardPerBlock;
         require(_maxRewardPerBlock >= _rewardPerBlock);
+        rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
         maxRewardPerBlock = _maxRewardPerBlock;
         isDynamic = _isDynamic;
