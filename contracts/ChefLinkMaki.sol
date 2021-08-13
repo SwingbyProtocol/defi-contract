@@ -99,7 +99,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         _updatePool();
 
         if (user.amount > 0) {
-            uint256 pending = user.amount.mul(accTokenPerShare).div(1e18).sub(
+            uint256 pending = user.amount.mul(accTokenPerShare).div(1e12).sub(
                 user.rewardDebt
             );
             if (pending > 0) {
@@ -116,7 +116,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             );
         }
 
-        user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e12);
 
         emit Deposit(msg.sender, _amount);
     }
@@ -131,7 +131,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
 
         _updatePool();
 
-        uint256 pending = user.amount.mul(accTokenPerShare).div(1e18).sub(
+        uint256 pending = user.amount.mul(accTokenPerShare).div(1e12).sub(
             user.rewardDebt
         );
 
@@ -144,7 +144,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             rewardToken.safeTransfer(address(msg.sender), pending);
         }
 
-        user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e18);
+        user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e12);
 
         emit Withdraw(msg.sender, _amount);
     }
@@ -256,6 +256,14 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit NewStartAndEndBlocks(_startBlock, _bonusEndBlock);
     }
 
+    function updateEndBlocks(uint256 _bonusEndBlock) external onlyOwner {
+        require(
+            block.timestamp < _bonusEndBlock,
+            "New bonusEndBlock must be higher than current height"
+        );
+        bonusEndBlock = _bonusEndBlock;
+    }
+
     /*
      * @notice View function to see pending reward on frontend.
      * @param _user: user address
@@ -268,15 +276,15 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
             uint256 tokenReward = multiplier.mul(rewardPerBlock);
             uint256 adjustedTokenPerShare = accTokenPerShare.add(
-                tokenReward.mul(1e18).div(stakedTokenSupply)
+                tokenReward.mul(1e12).div(stakedTokenSupply)
             );
             return
-                user.amount.mul(adjustedTokenPerShare).div(1e18).sub(
+                user.amount.mul(adjustedTokenPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
         } else {
             return
-                user.amount.mul(accTokenPerShare).div(1e18).sub(
+                user.amount.mul(accTokenPerShare).div(1e12).sub(
                     user.rewardDebt
                 );
         }
@@ -298,7 +306,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
         uint256 tokenReward = multiplier.mul(rewardPerBlock);
         accTokenPerShare = accTokenPerShare.add(
-            tokenReward.mul(1e18).div(stakedTokenSupply)
+            tokenReward.mul(1e12).div(stakedTokenSupply)
         );
         if (isDynamic) _updateRewardPerBlock();
         lastRewardBlock = block.number;
