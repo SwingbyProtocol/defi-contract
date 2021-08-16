@@ -13,43 +13,37 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    // The Skybridge contract.
     ISwapContractMin public immutable swapContract;
-
-    // The reward token
+    // The reward token.
     IERC20 public immutable rewardToken;
-
-    // The staked token
+    // The staked token.
     IERC20 public immutable stakedToken;
-
+    // The BTCT address.
     address public immutable BTCT_ADDR;
-
-    // Accrued token per share
+    // Accrued token per share.
     uint256 public accTokenPerShare;
-
     // The block number when token distribute ends.
     uint256 public bonusEndBlock;
-
     // The block number when token distribute starts.
     uint256 public startBlock;
-
-    // The block number of the last pool update
+    // The block number of the last pool update.
     uint256 public lastRewardBlock;
-
     // Tokens per block.
     uint256 public rewardPerBlock;
-
+    // default param that for rewardPerBlock.
     uint256 public defaultRewardPerBlock;
-
+    // the maximum size of rewardPerBlock.
     uint256 public maxRewardPerBlock;
-
+    // A falg for dynamic changing ths rewardPerBlock.
     bool public isDynamic = true;
-
+    // The flag for active BTC pool.
     bool public isDynamicBTC;
+    // The flag for active BTCT pool.
     bool public isDynamicBTCT;
-
+    // latest tilt size which is updated when updated pool.
     uint256 public latestTilt;
-
-    // Info of each user that stakes tokens (stakedToken)
+    // Info of each user that stakes tokens (stakedToken).
     mapping(address => UserInfo) public userInfo;
 
     struct UserInfo {
@@ -86,12 +80,13 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         bonusEndBlock = _bonusEndBlock;
         // Set the lastRewardBlock as the startBlock
         lastRewardBlock = startBlock;
-
+        // Sst Skybridge contract
         swapContract = _swapContract;
+        // Set BTCT
         BTCT_ADDR = _btct;
     }
 
-    /*
+    /**
      * @notice Deposit staked tokens and collect reward tokens (if any)
      * @param _amount: amount to withdraw (in rewardToken)
      */
@@ -122,7 +117,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit Deposit(msg.sender, _amount);
     }
 
-    /*
+    /**
      * @notice Withdraw staked tokens and collect reward tokens
      * @param _amount: amount to withdraw (in rewardToken)
      */
@@ -150,7 +145,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit Withdraw(msg.sender, _amount);
     }
 
-    /*
+    /**
      * @notice Withdraw staked tokens without caring about rewards rewards
      * @dev Needs to be for emergency.
      */
@@ -167,7 +162,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit EmergencyWithdraw(msg.sender, user.amount);
     }
 
-    /*
+    /**
      * @notice Stop rewards
      * @dev Only callable by owner. Needs to be for emergency.
      */
@@ -199,7 +194,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
     }
 
-    /*
+    /**
      * @notice Stop rewards
      * @dev Only callable by owner
      */
@@ -207,7 +202,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         bonusEndBlock = block.number;
     }
 
-    /*
+    /**
      * @notice Update reward per block
      * @dev Only callable by owner.
      * @param _rewardPerBlock: the reward per block
@@ -256,6 +251,11 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         emit NewStartAndEndBlocks(_startBlock, _bonusEndBlock);
     }
 
+    /**
+     * @notice Update bonusEndBlock of the given pool to be up-to-date.
+     * @param _bonusEndBlock: next bonusEndBlock
+     */
+
     function updateEndBlocks(uint256 _bonusEndBlock) external onlyOwner {
         require(
             block.number < _bonusEndBlock,
@@ -264,7 +264,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         bonusEndBlock = _bonusEndBlock;
     }
 
-    /*
+    /**
      * @notice View function to see pending reward on frontend.
      * @param _user: user address
      * @return Pending reward for a given user
@@ -290,7 +290,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         }
     }
 
-    /*
+    /**
      * @notice Update reward variables of the given pool to be up-to-date.
      */
     function _updatePool() internal {
@@ -311,6 +311,12 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         if (isDynamic) _updateRewardPerBlock();
         lastRewardBlock = block.number;
     }
+
+    /**
+     * @notice View function to see next expected rewardPerBlock on frontend.
+     * @param _token: token address which is supported on Swingby Skybridge.
+     * @param _amountOfFloat: a float amount when deposited on skybridge in the future.
+     */
 
     function getExpectedRewardPerBlock(address _token, uint256 _amountOfFloat)
         public
@@ -361,6 +367,9 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         return (updatedRewards, reserveBTC, reserveBTCT, tilt);
     }
 
+    /**
+     * @notice Update rewardPerBlock
+     */
     function _updateRewardPerBlock() internal {
         (
             uint256 updatedRewards,
@@ -406,7 +415,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         latestTilt = tilt;
     }
 
-    /*
+    /**
      * @notice Return reward multiplier over the given _from to _to block.
      * @param _from: block to start
      * @param _to: block to finish
