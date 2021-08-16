@@ -353,9 +353,10 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
                     latestTilt.sub(tilt).mul(1e10).div(blocks)
                 ); // moved == decimals 8
             } else {
-                updatedRewards = rewardPerBlock.sub(
-                    tilt.sub(latestTilt).mul(1e10).div(blocks)
-                ); // moved == decimals 8
+                if (tilt.sub(latestTilt).mul(1e10) <= rewardPerBlock)
+                    updatedRewards = rewardPerBlock.sub(
+                        tilt.sub(latestTilt).mul(1e10).div(blocks)
+                    ); // moved == decimals 8
             }
 
         if (updatedRewards >= maxRewardPerBlock) {
