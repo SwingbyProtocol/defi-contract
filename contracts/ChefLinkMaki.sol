@@ -206,6 +206,8 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
      * @notice Update reward per block
      * @dev Only callable by owner.
      * @param _rewardPerBlock: the reward per block
+     * @param _maxRewardPerBlock: the max nubmer of reward per block
+     * @param _isDynamic: the flag for enalble dynamic changing the rewardPerBlock
      */
     function updateRewardPerBlock(
         uint256 _rewardPerBlock,
