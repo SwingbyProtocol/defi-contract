@@ -8,7 +8,7 @@ module.exports = function (deployer) {
   const btct = "0xeb47a21c1fc00d1e863019906df1771b80dbe182"
   const rewardPerBlock = new BN(1).mul(new BN(10).pow(new BN(18))) // decimals == 18
   const maxRewardPerBlock = rewardPerBlock.mul(new BN(14)).div(new BN(10))
-  const startBlock = 5307109  // goerli blocks
-  const bonusEndBlock = 5317109 // goerli blocks
+  const startBlock = 5330730  // goerli blocks
+  const bonusEndBlock = 5530730 // goerli blocks
   deployer.deploy(ChefLinkMaki, stakedToken, rewardToken, swapContract, btct, rewardPerBlock, maxRewardPerBlock, startBlock, bonusEndBlock);
 };

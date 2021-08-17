@@ -215,10 +215,15 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         require(_rewardPerBlock >= 1e17);
         require(_rewardPerBlock <= 3e18);
         require(_maxRewardPerBlock >= _rewardPerBlock);
+        _updatePool();
         rewardPerBlock = _rewardPerBlock;
         defaultRewardPerBlock = rewardPerBlock;
         maxRewardPerBlock = _maxRewardPerBlock;
         isDynamic = _isDynamic;
+        if (!_isDynamic) {
+            isDynamicBTC = false;
+            isDynamicBTCT = false;
+        }
         emit NewRewardPerBlock(_rewardPerBlock);
     }
 
