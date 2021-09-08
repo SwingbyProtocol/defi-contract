@@ -342,7 +342,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             ? block.number.sub(lastRewardBlock)
             : 1;
 
-        if (blocks >= 50) blocks = 50;
+        if (blocks > 50) blocks = 50;
 
         updatedRewards = rewardPerBlock;
         (reserveBTC, reserveBTCT) = swapContract.getFloatReserve(
