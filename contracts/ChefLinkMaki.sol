@@ -43,6 +43,8 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
     bool public isDynamicBTCT;
     // latest tilt size which is updated when updated pool.
     uint256 public latestTilt;
+    // A number of staked token amount
+    uint256 public totalStaked;
     // Info of each user that stakes tokens (stakedToken).
     mapping(address => UserInfo) public userInfo;
 
@@ -94,7 +96,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[msg.sender];
         _updatePool();
 
-        if (user.amount > 0) {
+        if (user.amount != 0) {
             uint256 pending = user.amount.mul(accTokenPerShare).div(1e12).sub(
                 user.rewardDebt
             );
@@ -103,7 +105,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             }
         }
 
-        if (_amount > 0) {
+        if (_amount != 0) {
             user.amount = user.amount.add(_amount);
             stakedToken.safeTransferFrom(
                 address(msg.sender),
@@ -113,7 +115,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         }
 
         user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e12);
-
+        totalStaked = totalStaked.add(_amount);
         emit Deposit(msg.sender, _amount);
     }
 
@@ -131,17 +133,17 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
             user.rewardDebt
         );
 
-        if (_amount > 0) {
+        if (_amount != 0) {
             user.amount = user.amount.sub(_amount);
             stakedToken.safeTransfer(address(msg.sender), _amount);
         }
 
-        if (pending > 0) {
+        if (pending != 0) {
             rewardToken.safeTransfer(address(msg.sender), pending);
         }
 
         user.rewardDebt = user.amount.mul(accTokenPerShare).div(1e12);
-
+        totalStaked = totalStaked.sub(_amount);
         emit Withdraw(msg.sender, _amount);
     }
 
@@ -155,9 +157,10 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         user.amount = 0;
         user.rewardDebt = 0;
 
-        if (amountToTransfer > 0) {
+        if (amountToTransfer != 0) {
             stakedToken.safeTransfer(address(msg.sender), amountToTransfer);
         }
+        totalStaked = totalStaked.sub(amountToTransfer);
 
         emit EmergencyWithdraw(msg.sender, user.amount);
     }
@@ -278,7 +281,7 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
      */
     function pendingReward(address _user) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
-        uint256 stakedTokenSupply = stakedToken.balanceOf(address(this));
+        uint256 stakedTokenSupply = totalStaked;
         if (block.number > lastRewardBlock && stakedTokenSupply != 0) {
             uint256 multiplier = _getMultiplier(lastRewardBlock, block.number);
             uint256 tokenReward = multiplier.mul(rewardPerBlock);
@@ -338,6 +341,8 @@ contract ChefLinkMaki is Ownable, ReentrancyGuard {
         uint256 blocks = block.number - lastRewardBlock != 0
             ? block.number.sub(lastRewardBlock)
             : 1;
+
+        if (blocks >= 50) blocks = 50;
 
         updatedRewards = rewardPerBlock;
         (reserveBTC, reserveBTCT) = swapContract.getFloatReserve(
